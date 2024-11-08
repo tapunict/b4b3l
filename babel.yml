@@ -1,0 +1,60 @@
+version: '2'
+services:
+  #chat:
+  #    image: tap:fluentd
+  #    command: "-c /fluentd/etc/fluentd-babel.conf"
+  #    ports:
+  #        - "9880:9880"
+  #    volumes:
+   #       - ./fluentd-babel.conf:/fluentd/etc/fluentd-babel.conf
+   #   depends_on:
+   #     babel-topics:
+   #       condition: service_completed_successfully
+  babel-service:
+    image: docker.elastic.co/logstash/logstash:8.15.3
+    environment:
+      XPACK_MONITORING_ENABLED: "false"
+    ports:
+      - 9090:9090
+    volumes:
+      - ./logstash-babel.conf:/usr/share/logstash/pipeline/logstash.conf
+    depends_on:
+      babel-topics:
+        condition: service_completed_successfully
+  broker:
+    image: apache/kafka:latest
+    hostname: broker
+    container_name: broker
+    ports:
+      - '9092:9092'
+      - '9093:9093'
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT,DMI:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT_HOST://broker:9092,PLAINTEXT://broker:19092,DMI://151.97.56.148:9093'
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@broker:29093'
+      KAFKA_LISTENERS: 'CONTROLLER://:29093,PLAINTEXT_HOST://:9092,PLAINTEXT://:19092,DMI://:9093'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      CLUSTER_ID: '4L6g3nShT-eMCtK--X86sw'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+  babel-topics:
+    image: apache/kafka:latest
+    command: > 
+      bash -c "
+      /opt/kafka/bin/kafka-topics.sh --create --topic babel-input --bootstrap-server broker:9092 
+      && /opt/kafka/bin/kafka-topics.sh --create --topic babel-output --bootstrap-server broker:9092"
+    depends_on:
+      - broker
+  babel-stream:
+    image: babel
+    command: tap.Pipe
+    depends_on:
+      babel-topics:
+        condition: service_completed_successfully
+    
