@@ -21,32 +21,44 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 import org.apache.kafka.streams.StreamsConfig;
 import org.apache.kafka.streams.Topology;
-import org.apache.kafka.streams.kstream.ValueMapper;
+import org.apache.kafka.streams.kstream.KStream;
 
-import java.util.Arrays;
+
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * In this example, we implement a simple LineSplit program using the high-level Streams DSL
- * that reads from a source topic "streams-plaintext-input", where the values of messages represent lines of text;
- * the code split each text line in string into words and then write back into a sink topic "streams-linesplit-output" where
- * each record represents a single word.
+ * In this example, we implement a simple Pipe program using the high-level Streams DSL
+ * that reads from a source topic "streams-plaintext-input", where the values of messages represent lines of text,
+ * and writes the messages as-is into a sink topic "streams-pipe-output".
  */
-public class LineSplit {
+public class confundus {
 
     public static void main(String[] args) {
         Properties props = new Properties();
-        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "streams-linesplit");
-        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        props.put(StreamsConfig.APPLICATION_ID_CONFIG, "streams-pipe");
+        props.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "broker:9092");
         props.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
         props.put(StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
 
         final StreamsBuilder builder = new StreamsBuilder();
+        String inputStreamName="babel-input";
+        String outputStreamName="babel-output";
 
-        builder.<String, String>stream("streams-plaintext-input")
-            .flatMapValues(value -> Arrays.asList(value.split("\\W+")))
-            .to("streams-linesplit-output");
+        KStream<String, String> inputStream = builder.<String, String>stream(inputStreamName);
+        KStream<String, String> modifiedStream = inputStream.mapValues((key, value) -> {
+            // Use the key to modify the value
+            if (key.equals("farfallino")) {
+                return(FarfallinoTranslator.toFarfallino(value));
+            } else if (key.equals("hacker"))  {
+                return(HackerLanguageTranslator.toHackerLanguage(value));
+            } else {
+                return(value);
+            }
+        });
+        modifiedStream.to(outputStreamName);
+
+
 
         final Topology topology = builder.build();
         final KafkaStreams streams = new KafkaStreams(topology, props);

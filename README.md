@@ -1,11 +1,9 @@
+![](images/b3b3l.webp)
 
+Usage 
 
+To send a message confused with "farfallino" alphabet
+% curl -d "Salvo" http://localhost:9090
 
-mvn archetype:generate \
-    -DarchetypeGroupId=org.apache.kafka \
-    -DarchetypeArtifactId=streams-quickstart-java \
-    -DarchetypeVersion=3.9.0 \
-    -DgroupId=streams.examples \
-    -DartifactId=kafka-streams.examples \
-    -Dversion=0.1 \
-    -Dpackage=tap
+To send a message confused with "hacker" alphabet
+% curl -d "Salvo" http://localhost:9091
